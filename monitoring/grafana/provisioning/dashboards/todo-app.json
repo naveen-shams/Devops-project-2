@@ -1,0 +1,70 @@
+{
+  "title": "Todo App — DevOps Dashboard",
+  "uid": "todo-app-dashboard",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_request_count_total[1m])) by (endpoint)",
+          "legendFormat": "{{ endpoint }}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_request_count_total{status=~'5..'}[1m])) / sum(rate(app_request_count_total[1m])) * 100",
+          "legendFormat": "error %"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "p95 latency (seconds)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(app_request_latency_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p95 {{ endpoint }}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Total requests",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(app_request_count_total)",
+          "legendFormat": "total"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "App uptime",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "expr": "up{job='todo-app'}",
+          "legendFormat": "up"
+        }
+      ]
+    }
+  ]
+}
