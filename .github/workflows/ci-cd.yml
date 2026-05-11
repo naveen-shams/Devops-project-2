@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write          
+
 env:
-  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/devops-todo-app
+  DOCKER_IMAGE: ghcr.io/${{ github.repository_owner }}/devops-todo-app
 
 jobs:
   test:
@@ -15,21 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('app/requirements.txt') }}
-
       - name: Install dependencies
         run: pip install -r app/requirements.txt
-
       - name: Run pytest
         run: pytest tests/ -v --tb=short
 
@@ -42,7 +42,6 @@ jobs:
       image_tag: ${{ steps.meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Docker meta (tags)
         id: meta
         uses: docker/metadata-action@v5
@@ -51,13 +50,12 @@ jobs:
           tags: |
             type=sha,prefix=sha-
             type=raw,value=latest
-
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry    
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+          registry: ghcr.io                         
+          username: ${{ github.actor }}              
+          password: ${{ secrets.GITHUB_TOKEN }}      
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -74,28 +72,23 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
-
       - name: Update kubeconfig (EKS)
         run: aws eks update-kubeconfig --name devops-todo-cluster --region ap-south-1
-
       - name: Set image tag in deployment
         run: |
           IMAGE_TAG=$(echo "${{ github.sha }}" | head -c 7)
           sed -i "s|IMAGE_TAG|sha-${IMAGE_TAG}|g" k8s/deployment.yml
-
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/namespace.yml
           kubectl apply -f k8s/deployment.yml
           kubectl apply -f k8s/service.yml
           kubectl apply -f k8s/ingress.yml
-
       - name: Wait for rollout
         run: kubectl rollout status deployment/todo-app -n todo-app --timeout=120s
