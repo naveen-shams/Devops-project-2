@@ -10,7 +10,6 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/devops-todo-app
 
 jobs:
-  # ── Phase 1: Test ────────────────────────────────────────────────
   test:
     name: Run tests
     runs-on: ubuntu-latest
@@ -34,7 +33,6 @@ jobs:
       - name: Run pytest
         run: pytest tests/ -v --tb=short
 
-  # ── Phase 2: Build & Push Docker image ───────────────────────────
   build:
     name: Build & push image
     runs-on: ubuntu-latest
@@ -69,7 +67,6 @@ jobs:
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:latest
           cache-to: type=inline
 
-  # ── Phase 3: Deploy to Kubernetes ────────────────────────────────
   deploy:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
